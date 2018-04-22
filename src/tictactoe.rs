@@ -4,29 +4,31 @@ use std::io;
 struct Board {
     width: u8,
     height: u8,
-    data: Vec<char>,
+    data: Vec<Vec<char>>,
 }
 
 impl Board {
+    const MAGIC: [u32; 9] = [
+        0x10010010, 0x10001000, 0x10000101, 0x01010000, 0x01001011, 0x01000100, 0x00110001,
+        0x00101000, 0x00100110,
+    ];
+
     fn print(&self) {
-        let mut i = 0;
-        for val in &self.data {
-            print!("| {} ", val);
-            i += 1;
-            if i % self.width == 0 {
-                println!("|");
+        for line in &self.data {
+            for val in line {
+                print!("| {} ", val);
             }
+            println!("|");
         }
     }
 
     fn update(&mut self, x: u8, y: u8, turn: bool) {
         let sym = if turn { 'o' } else { 'x' };
-        self.data[(x + y * self.height) as usize] = sym;
+        self.data[x as usize][y as usize] = sym;
     }
 
-    fn check(&self) -> (bool, String) {
-        println!("");
-        (true, String::from("x won!"))
+    fn check(&self, score: u32) -> bool {
+        score & 0x44444444 > 0
     }
 }
 
@@ -34,32 +36,35 @@ const DIM: u8 = 3;
 
 fn main() {
     let mut turn = true;
+    let mut scores: [u32; 2] = [0x11111111, 0x11111111];
     let mut board = create_board(DIM, DIM);
+
     loop {
         board.print();
-        let player = if turn { 1 } else { 2 };
+        let player = if turn { 0 } else { 1 };
 
         let xinput = clamp(
             0,
             DIM,
-            take_input(format!("player {}, please enter x", player)) - 1,
+            take_input(format!("player {}, please enter x", player + 1)) - 1,
         );
         let yinput = clamp(
             0,
             DIM,
-            take_input(format!("player {}, please enter y", player)) - 1,
+            take_input(format!("player {}, please enter y", player + 1)) - 1,
         );
 
         println!("x: {}", xinput);
         println!("y: {}", yinput);
         board.update(xinput, yinput, turn);
-        let res: (bool, String) = board.check();
-        if res.0 == true {
-            println!("{}", res.1);
+
+        scores[player] = scores[player] + Board::MAGIC[(yinput + xinput * DIM) as usize];
+
+        if board.check(scores[player]) {
+            println!("player {} won!", player + 1);
             board.print();
             break;
         }
-        // board.print();
         turn = !turn;
     }
 }
@@ -114,7 +119,6 @@ fn take_input(prompt: String) -> u8 {
  * Is it possible to fill a dynamic length vector with values
  * without using a separate for loop?
  * something equivalent of the static length version
- * vec!['-';width]
  */
 fn create_board(width: u8, height: u8) -> Board {
     let mut res = Board {
@@ -122,8 +126,12 @@ fn create_board(width: u8, height: u8) -> Board {
         height,
         data: vec![],
     };
-    for _ in 0..width * height {
-        res.data.push('-');
+    for _ in 0..height {
+        let mut temp = vec![];
+        for _ in 0..width {
+            temp.push('-');
+        }
+        res.data.push(temp);
     }
     res
 }
