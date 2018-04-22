@@ -1,0 +1,10 @@
+[package]
+name = "Tic Tac Toe"
+version = "0.1.0"
+authors = ["joakimOL <joakim.o.l@hotmail.com>"]
+
+[[bin]]
+name = "tictactoe"
+path = "src/tictactoe.rs"
+
+[dependencies]
