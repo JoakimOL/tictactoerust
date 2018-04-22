@@ -13,6 +13,8 @@ impl Board {
         0x00101000, 0x00100110,
     ];
 
+    const INIT: u32 = 0x11111111;
+
     fn print(&self) {
         for line in &self.data {
             for val in line {
@@ -22,9 +24,14 @@ impl Board {
         }
     }
 
-    fn update(&mut self, x: u8, y: u8, turn: bool) {
+    fn update(&mut self, x: u8, y: u8, turn: bool) -> Result<(), ()> {
         let sym = if turn { 'o' } else { 'x' };
-        self.data[x as usize][y as usize] = sym;
+        if self.data[y as usize][x as usize] == '-' {
+            self.data[y as usize][x as usize] = sym;
+            Ok(())
+        } else {
+            Err(())
+        }
     }
 
     fn check(&self, score: u32) -> bool {
@@ -36,7 +43,7 @@ const DIM: u8 = 3;
 
 fn main() {
     let mut turn = true;
-    let mut scores: [u32; 2] = [0x11111111, 0x11111111];
+    let mut scores: [u32; 2] = [Board::INIT, Board::INIT];
     let mut board = create_board(DIM, DIM);
 
     loop {
@@ -46,19 +53,25 @@ fn main() {
         let xinput = clamp(
             0,
             DIM,
-            take_input(format!("player {}, please enter x", player + 1)) - 1,
+            take_input(format!("player {}, please enter x coordinate", player + 1)) - 1,
         );
         let yinput = clamp(
             0,
             DIM,
-            take_input(format!("player {}, please enter y", player + 1)) - 1,
+            take_input(format!("player {}, please enter y coordinate", player + 1)) - 1,
         );
 
         println!("x: {}", xinput);
         println!("y: {}", yinput);
-        board.update(xinput, yinput, turn);
-
-        scores[player] = scores[player] + Board::MAGIC[(yinput + xinput * DIM) as usize];
+        match board.update(xinput, yinput, turn) {
+            Ok(_) => {
+                scores[player] = scores[player] + Board::MAGIC[(yinput + xinput * DIM) as usize]
+            }
+            Err(_) => {
+                println!("Invalid input! Cell is taken.");
+                continue;
+            }
+        }
 
         if board.check(scores[player]) {
             println!("player {} won!", player + 1);
