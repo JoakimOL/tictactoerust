@@ -1,20 +1,54 @@
 use std::io;
 
+/*
+ * Struct that describes the game board
+ * contains its dimensions and data.
+ */
 #[derive(Debug)]
 struct Board {
-    width: u8,
+    width:  u8,
     height: u8,
-    data: Vec<Vec<char>>,
+    data:   Vec<Vec<char>>,
 }
 
 impl Board {
+    const WIN_CONDITION: u8 = 3;
+
+    #[cfg_attr(rustfmt, rustfmt_skip)]
     const MAGIC: [u32; 9] = [
-        0x10010010, 0x10001000, 0x10000101, 0x01010000, 0x01001011, 0x01000100, 0x00110001,
-        0x00101000, 0x00100110,
+        0x10010010, 0x01010000, 0x00110001,
+        0x10001000, 0x01001011, 0x00101000,
+        0x10000101, 0x01000100, 0x00100110,
     ];
 
     const INIT: u32 = 0x11111111;
 
+    /*
+     * check for three in a row
+     * what the fuck
+     */
+    fn check(&self, score: u32) -> bool {
+        score & 0x44444444 > 0
+    }
+
+    /*
+     * updates the board at the given coordinates with
+     * an appropriate symbol
+     */
+    fn update(&mut self, x: u8, y: u8, turn: bool) -> Result<(), ()> {
+        let sym = if turn { 'o' } else { 'x' };
+        if self.data[y as usize][x as usize] == '-' {
+            self.data[y as usize][x as usize] = sym;
+            Ok(())
+        }
+        else {
+            Err(())
+        }
+    }
+
+    /*
+     * pretty print function
+     */
     fn print(&self) {
         for line in &self.data {
             for val in line {
@@ -24,27 +58,44 @@ impl Board {
         }
     }
 
-    fn update(&mut self, x: u8, y: u8, turn: bool) -> Result<(), ()> {
-        let sym = if turn { 'o' } else { 'x' };
-        if self.data[y as usize][x as usize] == '-' {
-            self.data[y as usize][x as usize] = sym;
-            Ok(())
-        } else {
-            Err(())
+    /*
+     *   TODO(#1)
+     *   0x10010010, 0x10001000, 0x10000101,
+     *   0x01010000, 0x01001011, 0x01000100,
+     *   0x00110001, 0x00101000, 0x00100110,
+     *
+     *   Assumes that you need 3 in a row to win
+     *   may be altered by changing the constant
+     */
+    fn generate_magic(&self) -> Result<Vec<u8>, String> {
+        if self.width < Board::WIN_CONDITION
+            || self.height < Board::WIN_CONDITION
+        {
+            return Err(String::from("invalid dimensions"));
         }
-    }
-
-    fn check(&self, score: u32) -> bool {
-        score & 0x44444444 > 0
+        let mut numofwins: u32 = 0;
+        // let fakk: f32 = self.width as f32 / Board::WIN_CONDITION as f32;
+        numofwins = numofwins
+            + ((self.width - (Board::WIN_CONDITION - 1)) as u32
+                * self.height as u32);
+        numofwins = numofwins
+            + ((self.height - (Board::WIN_CONDITION - 1)) as u32
+                * self.width as u32);
+        println!("{}", numofwins);
+        Ok(vec![1])
     }
 }
-
+// Board dimensions
 const DIM: u8 = 3;
 
 fn main() {
     let mut turn = true;
     let mut scores: [u32; 2] = [Board::INIT, Board::INIT];
     let mut board = create_board(DIM, DIM);
+    match board.generate_magic() {
+        Ok(_) => println!("OK"),
+        Err(_) => println!("Err"),
+    };
 
     loop {
         board.print();
@@ -53,19 +104,29 @@ fn main() {
         let xinput = clamp(
             0,
             DIM,
-            take_input(format!("player {}, please enter x coordinate", player + 1)) - 1,
+            take_input(format!(
+                "player {}, please enter x coordinate",
+                player + 1
+            )) - 1,
         );
         let yinput = clamp(
             0,
             DIM,
-            take_input(format!("player {}, please enter y coordinate", player + 1)) - 1,
+            take_input(format!(
+                "player {}, please enter y coordinate",
+                player + 1
+            )) - 1,
         );
 
         println!("x: {}", xinput);
         println!("y: {}", yinput);
+
+        // if the input is successfully registered - update scores
+        // if not, let the user try again
         match board.update(xinput, yinput, turn) {
             Ok(_) => {
-                scores[player] = scores[player] + Board::MAGIC[(yinput + xinput * DIM) as usize]
+                scores[player] = scores[player]
+                    + Board::MAGIC[(yinput + xinput * DIM) as usize];
             }
             Err(_) => {
                 println!("Invalid input! Cell is taken.");
@@ -73,6 +134,7 @@ fn main() {
             }
         }
 
+        // game won!
         if board.check(scores[player]) {
             println!("player {} won!", player + 1);
             board.print();
@@ -82,6 +144,9 @@ fn main() {
     }
 }
 
+/*
+ * clamps the value val between min and max
+ */
 fn clamp(min: u8, max: u8, val: u8) -> u8 {
     match val {
         val if val > max => max,
@@ -90,6 +155,9 @@ fn clamp(min: u8, max: u8, val: u8) -> u8 {
     }
 }
 
+/*
+ *verifies that the input is within bounds
+ */
 fn check_input(input: i8) -> Result<u8, String> {
     if input > DIM as i8 || 0 > input {
         return Err(String::from("input out of bounds. try again"));
@@ -98,7 +166,7 @@ fn check_input(input: i8) -> Result<u8, String> {
 }
 
 /*
- * Takes user input as a unsigned 8bit int.
+ * prompts user to input an integer.
  * If the user supplies something that is not a number,
  * the loop continues and the user is prompted again.
  *
@@ -131,7 +199,6 @@ fn take_input(prompt: String) -> u8 {
  *
  * Is it possible to fill a dynamic length vector with values
  * without using a separate for loop?
- * something equivalent of the static length version
  */
 fn create_board(width: u8, height: u8) -> Board {
     let mut res = Board {
