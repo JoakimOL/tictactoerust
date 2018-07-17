@@ -12,6 +12,10 @@ struct Board {
 }
 
 impl Board {
+    /*
+     * sadly, the win-detection (MAGIC, INIT and check)
+     * was stolen from somewhere I cannot remember
+     */
     #[cfg_attr(rustfmt, rustfmt_skip)]
     const MAGIC: [u32; 9] = [
         0x10010010, 0x01010000, 0x00110001,
@@ -23,7 +27,6 @@ impl Board {
 
     /*
      * check for three in a row
-     * what the fuck
      */
     fn check(&self, score: u32) -> bool {
         score & 0x44444444 > 0
@@ -72,7 +75,7 @@ fn main() {
             0,
             DIM,
             take_input(format!(
-                "player {}, please enter x coordinate",
+                "player {}, please enter x coordinate (1-3)",
                 player + 1
             )) - 1,
         );
@@ -80,7 +83,7 @@ fn main() {
             0,
             DIM,
             take_input(format!(
-                "player {}, please enter y coordinate",
+                "player {}, please enter y coordinate (1-3)",
                 player + 1
             )) - 1,
         );
