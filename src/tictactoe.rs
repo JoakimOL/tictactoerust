@@ -12,8 +12,6 @@ struct Board {
 }
 
 impl Board {
-    const WIN_CONDITION: u8 = 3;
-
     #[cfg_attr(rustfmt, rustfmt_skip)]
     const MAGIC: [u32; 9] = [
         0x10010010, 0x01010000, 0x00110001,
@@ -57,33 +55,6 @@ impl Board {
             println!("|");
         }
     }
-
-    /*
-     *   TODO(#1)
-     *   0x10010010, 0x10001000, 0x10000101,
-     *   0x01010000, 0x01001011, 0x01000100,
-     *   0x00110001, 0x00101000, 0x00100110,
-     *
-     *   Assumes that you need 3 in a row to win
-     *   may be altered by changing the constant
-     */
-    fn generate_magic(&self) -> Result<Vec<u8>, String> {
-        if self.width < Board::WIN_CONDITION
-            || self.height < Board::WIN_CONDITION
-        {
-            return Err(String::from("invalid dimensions"));
-        }
-        let mut numofwins: u32 = 0;
-        // let fakk: f32 = self.width as f32 / Board::WIN_CONDITION as f32;
-        numofwins = numofwins
-            + ((self.width - (Board::WIN_CONDITION - 1)) as u32
-                * self.height as u32);
-        numofwins = numofwins
-            + ((self.height - (Board::WIN_CONDITION - 1)) as u32
-                * self.width as u32);
-        println!("{}", numofwins);
-        Ok(vec![1])
-    }
 }
 // Board dimensions
 const DIM: u8 = 3;
@@ -92,10 +63,6 @@ fn main() {
     let mut turn = true;
     let mut scores: [u32; 2] = [Board::INIT, Board::INIT];
     let mut board = create_board(DIM, DIM);
-    match board.generate_magic() {
-        Ok(_) => println!("OK"),
-        Err(_) => println!("Err"),
-    };
 
     loop {
         board.print();
@@ -159,7 +126,7 @@ fn clamp(min: u8, max: u8, val: u8) -> u8 {
  *verifies that the input is within bounds
  */
 fn check_input(input: i8) -> Result<u8, String> {
-    if input > DIM as i8 || 0 > input {
+    if input > DIM as i8 || 0 >= input {
         return Err(String::from("input out of bounds. try again"));
     }
     Ok(input as u8)
